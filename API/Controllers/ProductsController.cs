@@ -1,4 +1,4 @@
-using Azure.Core.Pipeline;
+using API.RequestHelpers;
 using Core.Entities;
 using Core.Interfaces;
 using Core.Specifications;
@@ -6,11 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers;
 
-//The [ApiController] and [Route("api/[controller]")] attributes are used to configure the controller's behavior and routing
-[ApiController]
-[Route("api/[controller]")]
 //controllerbase allows us to use http methods without having to use views, also use our db context we made called storecontext
-public class ProductsController(IGenericRepository<Product> productRepository) : ControllerBase
+public class ProductsController(IGenericRepository<Product> productRepository) : BaseAPIController
 {
 
     /// <summary>
@@ -21,12 +18,12 @@ public class ProductsController(IGenericRepository<Product> productRepository) :
     /// <param name="sort">The sort order, for example "priceAsc"</param>
     /// <returns>A list of Products</returns>
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Product>>> GetProducts(string? brand, string? type, string? sort)
+    public async Task<ActionResult<IEnumerable<Product>>> GetProducts([FromQuery]ProductSpecParams specParams)
     {
-        var spec = new ProductSpecification(brand, type, sort);
-        var products = await productRepository.ListAsync(spec);
+        var spec = new ProductSpecification(specParams);
         
-        return Ok(products);
+        //call our base api controllers pagination method
+        return await CreatePagedResult(productRepository, spec, specParams.PageIndex, specParams.PageSize);
     }
 
     /// <summary>

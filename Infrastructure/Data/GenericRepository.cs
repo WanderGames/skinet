@@ -12,6 +12,15 @@ public class GenericRepository<T>(StoreContext context) : IGenericRepository<T> 
         context.Set<T>().Add(entity);
     }
 
+    public async Task<int> CountAsync(ISpecification<T> spec)
+    {
+        var query = context.Set<T>().AsQueryable();
+        query = spec.ApplyCriteria(query);
+
+        //return out total count before we apply pagination but after we filter
+        return await query.CountAsync();
+    }
+
     public bool Exists(int id)
     {
         //we can access id because our base entity has and id property

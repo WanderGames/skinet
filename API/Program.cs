@@ -14,9 +14,13 @@ builder.Services.AddDbContext<StoreContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
 
-//add our product repository, this is scoped meaning it will be created once per request
+//add our repositories, this is scoped meaning it will be created once per request
+
 //specify the interface and the implementation class
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
+
+//since this repository uses generics we need to add it with the typeof(repository)
+builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 
 var app = builder.Build();
 

@@ -1,5 +1,7 @@
+using Azure.Core.Pipeline;
 using Core.Entities;
 using Core.Interfaces;
+using Core.Specifications;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers;
@@ -8,7 +10,7 @@ namespace API.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 //controllerbase allows us to use http methods without having to use views, also use our db context we made called storecontext
-public class ProductsController(IProductRepository productRepository) : ControllerBase
+public class ProductsController(IGenericRepository<Product> productRepository) : ControllerBase
 {
 
     /// <summary>
@@ -21,8 +23,10 @@ public class ProductsController(IProductRepository productRepository) : Controll
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Product>>> GetProducts(string? brand, string? type, string? sort)
     {
-        //removes
-        return Ok(await productRepository.GetProductsAsync(brand, type, sort));
+        var spec = new ProductSpecification(brand, type, sort);
+        var products = await productRepository.ListAsync(spec);
+        
+        return Ok(products);
     }
 
     /// <summary>
@@ -33,7 +37,7 @@ public class ProductsController(IProductRepository productRepository) : Controll
     [HttpGet("{id:int}")]//api/products/1 where 1 is the id
     public async Task<ActionResult<Product>> GetProduct(int id)
     {
-        var product = await productRepository.GetProductByIdAsync(id);
+        var product = await productRepository.GetbyIdAsync(id);
 
         if (product == null) return NotFound();
 
@@ -48,9 +52,9 @@ public class ProductsController(IProductRepository productRepository) : Controll
     [HttpPost]
     public async Task<ActionResult<Product>> CreateProduct(Product product)
     {
-        productRepository.AddProduct(product);
+        productRepository.Add(product);
 
-        if (await productRepository.SaveChangesAsync())
+        if (await productRepository.SaveAllAsync())
         {
             return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, product);
         }
@@ -70,9 +74,9 @@ public class ProductsController(IProductRepository productRepository) : Controll
         //if the id in the url doesn't match the id in the body, return bad request
         if (product.Id != id || !ProductExists(id)) return BadRequest("Cannot update this product");
 
-        productRepository.UpdateProduct(product);
+        productRepository.Update(product);
 
-        if (await productRepository.SaveChangesAsync()) return NoContent();
+        if (await productRepository.SaveAllAsync()) return NoContent();
 
         return BadRequest("Problem updating product()");
     }
@@ -85,14 +89,14 @@ public class ProductsController(IProductRepository productRepository) : Controll
     [HttpDelete("{id:int}")]
     public async Task<ActionResult> DeleteProduct(int id)
     {
-        var product = await productRepository.GetProductByIdAsync(id);
+        var product = await productRepository.GetbyIdAsync(id);
 
         if (product == null) return NotFound();
 
         //tell entity framework to track the product as deleted
-        productRepository.DeleteProduct(product);
+        productRepository.Remove(product);
 
-        if (await productRepository.SaveChangesAsync()) return NoContent();
+        if (await productRepository.SaveAllAsync()) return NoContent();
 
         return BadRequest("Problem deleting product()");
     }
@@ -104,7 +108,9 @@ public class ProductsController(IProductRepository productRepository) : Controll
     [HttpGet("Brands")] //api/products/Brands
     public async Task<ActionResult<IReadOnlyList<string>>> GetBrands()
     {
-        return Ok(await productRepository.GetBrandsAsync());
+        var spec = new BrandListSpecification();
+
+        return Ok(await productRepository.ListAsync(spec));
     }
 
     /// <summary>
@@ -114,7 +120,9 @@ public class ProductsController(IProductRepository productRepository) : Controll
     [HttpGet("Types")] //api/products/Types
     public async Task<ActionResult<IReadOnlyList<string>>> GetTypes()
     {
-        return Ok(await productRepository.GetTypesAsync());
+        var spec = new TypeListSpecification();
+
+        return Ok(await productRepository.ListAsync(spec));
     }
 
 
@@ -125,6 +133,6 @@ public class ProductsController(IProductRepository productRepository) : Controll
     /// <returns>True if the product exists, false otherwise</returns>
     private bool ProductExists(int id)
     {
-        return productRepository.ProductExists(id);
+        return productRepository.Exists(id);
     }
 }

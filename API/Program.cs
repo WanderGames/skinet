@@ -1,3 +1,4 @@
+using API.MiddleWare;
 using Core.Interfaces;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -22,16 +23,27 @@ builder.Services.AddScoped<IProductRepository, ProductRepository>();
 //since this repository uses generics we need to add it with the typeof(repository)
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 
+//add our cors service
+builder.Services.AddCors();
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Configure the HTTP request pipeline (middleware).
+//use our created exception middleware
+app.UseMiddleware<ExceptionMiddleWare>();
 
+//add cors (cross origin resource sharing) middleware
+//allow any header, any method, and set the origin to localhost and port 4200
+//prevents malicious websites from making unauthorized requests
+app.UseCors(x => x.AllowAnyHeader().AllowAnyMethod().WithOrigins("http://localhost:4200","https://localhost:4200"));
+
+//Middleware to allow us to use our controllers
 app.MapControllers();
 
 //seed the database, this runs when application starts
 try
 {
-    //any code we create that uses this variable will removed after the try catch
+    //any code we create that uses this variable will be removed after the try catch
     using var scope = app.Services.CreateScope();
     var services = scope.ServiceProvider;
     var context = services.GetRequiredService<StoreContext>();

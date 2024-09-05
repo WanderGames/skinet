@@ -1,0 +1,33 @@
+<!-- add our filters button to open the angular dialog -->
+<div class="flex flex-col gap-3">
+    <div class="flex justify-end mb-3 gap-3">
+        <button mat-stroked-button (click)="openFiltersDialog()">
+            <mat-icon>filter_list</mat-icon>
+            Filters
+        </button>
+        <button mat-stroked-button [matMenuTriggerFor]="sortMenu">
+            <mat-icon>swap_vert</mat-icon>
+            Sort
+        </button>
+    </div>
+    <!-- display our products in a grid -->
+    <div class="grid grid-cols-4 gap-4">
+
+        @for (product of products; track product.id) {
+            <!-- pass in the product to the product item child component -->
+            <app-product-item [product]="product"></app-product-item>
+        }
+        
+    </div>
+</div>
+
+<mat-menu #sortMenu="matMenu">
+    <mat-selection-list [multiple]="false" (selectionChange)="onSortChange($event)">
+        @for (sort of sortOptions; track $index) {
+            <!-- set the sort to the selected sort -->
+            <mat-list-option [value]="sort.value" [selected]="selectedSort === sort.value">
+                {{sort.name}}
+            </mat-list-option>
+        }
+    </mat-selection-list>
+</mat-menu> 

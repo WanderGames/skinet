@@ -9,6 +9,10 @@ import { MatButton } from '@angular/material/button';
 import { MatIcon } from '@angular/material/icon';
 import { MatMenu, MatMenuTrigger } from '@angular/material/menu';
 import { MatListOption, MatSelectionList, MatSelectionListChange } from '@angular/material/list';
+import { ShopParams } from '../../shared/models/shopParams';
+import { MatPaginator, PageEvent } from '@angular/material/paginator';
+import { Pagination } from '../../shared/models/pagination';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-shop',
@@ -21,7 +25,9 @@ import { MatListOption, MatSelectionList, MatSelectionListChange } from '@angula
     MatMenu,
     MatSelectionList,
     MatListOption,
-    MatMenuTrigger
+    MatMenuTrigger,
+    MatPaginator,
+    FormsModule
   ],
   templateUrl: './shop.component.html',
   styleUrl: './shop.component.scss'
@@ -34,16 +40,19 @@ export class ShopComponent implements OnInit {
 
   title = 'Skinet';
   //use our created product type
-  products: Product[] = [];
+  products?: Pagination<Product>;
 
-  selectedBrands: string[] = [];
-  selectedTypes: string[] = [];
-  selectedSort: string = 'name';
   sortOptions = [
     { name: 'Alphabetical', value: 'name' },
     { name: 'Price: Low to High', value: 'priceAsc' },
     { name: 'Price: High to Low', value: 'priceDesc' }
   ]
+
+  //create a new instance of our shop params class
+  shopParams: ShopParams = new ShopParams();
+
+  //create a array of our page size options
+  pageSizeOptions = [5,10,15,20];
 
   //this will run when the component is created
   ngOnInit(): void {
@@ -57,28 +66,45 @@ export class ShopComponent implements OnInit {
     //get the types
     this.shopService.getTypes();
 
-    this.shopService.getProducts();
+    //get the products
+    this.getProducts();
   }
 
   getProducts() {
     //get the products
     //this will send a get request to our api/products, subscribe to the observable response
     //using our service
-    this.shopService.getProducts(this.selectedBrands, this.selectedTypes, this.selectedSort).subscribe({
+    this.shopService.getProducts(this.shopParams).subscribe({
       //tells us what to do with the response, int this case we want to log the data(products)
-      next: response => this.products = response.data,
+      next: response => this.products = response,
       //tells us what to do with the error
       error: error => console.log(error)
     });
   }
 
+  onSearchChange() {
+    this.shopParams.pageNumber = 1;
+    this.getProducts();
+  }
+
+  //event handler for when the user changes the page size
+  handlePageEvent(event: PageEvent){
+    //set the page number and page size
+    this.shopParams.pageNumber = event.pageIndex + 1;
+    this.shopParams.pageSize = event.pageSize;
+    this.getProducts();
+  }
+
+  //event handler for when the user changes the sort
   onSortChange(event: MatSelectionListChange) {
     //get the selected option from the event
     const selectedOption = event.options[0];
 
     //set the selected sort to the selected option
     if (selectedOption) {
-      this.selectedSort = selectedOption.value;
+      this.shopParams.sort = selectedOption.value;
+      //reset the page number when the sort is changed
+      this.shopParams.pageNumber = 1;
       this.getProducts();
 
     }
@@ -89,8 +115,8 @@ export class ShopComponent implements OnInit {
     const dialogRef = this.dialogService.open(FiltersDialogComponent, {
       minWidth: 500,
       data: {
-        selectedBrands: this.selectedBrands,
-        selectedTypes: this.selectedTypes
+        selectedBrands: this.shopParams.brands,
+        selectedTypes: this.shopParams.types
       }
     });
 
@@ -98,13 +124,12 @@ export class ShopComponent implements OnInit {
     dialogRef.afterClosed().subscribe({
       next: result => {
         if (result) {
-          this.selectedBrands = result.selectedBrands;
-          this.selectedTypes = result.selectedTypes;
+          this.shopParams.brands = result.selectedBrands;
+          this.shopParams.types = result.selectedTypes;
+          //reset the page number when filters are applied
+          this.shopParams.pageNumber = 1;
           //apply filters
-          this.shopService.getProducts(this.selectedBrands, this.selectedTypes).subscribe({
-            next: response => this.products = response.data,
-            error: error => console.log(error)
-          });
+          this.getProducts();
         }
       }
 

@@ -2,6 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Pagination } from '../../shared/models/pagination';
 import { Product } from '../../shared/models/products';
+import { ShopParams } from '../../shared/models/shopParams';
 
 //can inject this service whereever we need it in our code
 @Injectable({
@@ -20,26 +21,33 @@ export class ShopService {
   types: string[] = [];
   brands: string[] = [];
 
-  getProducts(brands?: string[], types?: string[], sort?: string) {
+  getProducts(shopParams: ShopParams) {
     let params = new HttpParams();
 
     //add the brands to the params query string using a comma seperated string
-    if(brands && brands.length > 0) {
-      params = params.append('brands', brands.join(','));
+    if(shopParams.brands.length > 0) {
+      params = params.append('brands', shopParams.brands.join(','));
     }
 
     //add the types to the params query string using a comma seperated string
-    if(types && types.length > 0) {
-      params = params.append('types', types.join(','));
+    if(shopParams.types.length > 0) {
+      params = params.append('types', shopParams.types.join(','));
     }
 
     //add the sort to the params query string
-    if(sort) {
-      params = params.append('sort', sort);
+    if(shopParams.sort) {
+      params = params.append('sort', shopParams.sort);
+    }
+
+    //add the search to the params query string
+    if(shopParams.search){
+      params = params.append('search', shopParams.search);
     }
 
     //add the pageSize to the params query string
-    params = params.append('pageSize', 20);
+    params = params.append('pageSize', shopParams.pageSize);
+    //add the pageIndex to the params query string
+    params = params.append('pageIndex', shopParams.pageNumber);
 
     //use our params as a query string i.e. ?brands=react&types=boards
     return this.http.get<Pagination<Product>>(this.baseUrl + 'products', {params: params});

@@ -54,6 +54,15 @@ export class ShopService {
   }
 
   /**
+   * Get a single product by id
+   * @param id the id of the product
+   * @returns an observable that emits a single product
+   */
+  getProduct(id: number) {
+    return this.http.get<Product>(this.baseUrl + 'products/' + id);
+  }
+
+  /**
    * Get all the brands
    * If the list of brands is already populated, return
    * Otherwise, make an API call to get the list of brands and populate the list
